@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "airi-web",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "assets": {
+    // AIRI stage-web build output, copied here by CI (files > 25 MiB go to R2 instead).
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Backend paths proxy to EC2; /assets/* falls back to R2 for oversized files.
+    "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/ws/*", "/.well-known/*", "/assets/*"]
+  },
+  "r2_buckets": [
+    { "binding": "LARGE_ASSETS", "bucket_name": "airi-web-large-assets" }
+  ]
+  // ORIGIN_URL is passed with `wrangler deploy --var ORIGIN_URL:<OriginUrl output>`.
+  // ORIGIN_SECRET is a secret: `wrangler secret put ORIGIN_SECRET`.
+}

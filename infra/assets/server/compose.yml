@@ -1,0 +1,89 @@
+# AIRI backend on a single EC2 instance. Rendered values come from:
+#   .env          — IMAGE_REGISTRY, IMAGE_TAG, PUBLIC_URL, SITE_HOST, ORIGIN_SECRET (written by deploy.sh)
+#   secrets.env   — generated once on the instance (Postgres password, auth/router keys)
+#   runtime.env   — SSM SecureString OAuth parameters
+# Memory limits keep the stack inside a 2 GiB instance (plus swap).
+
+x-app: &app
+  restart: unless-stopped
+  env_file: [secrets.env, runtime.env]
+  depends_on:
+    db: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  healthcheck:
+    test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/readyz >/dev/null']
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 60s
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: '3' }
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: [secrets.env]
+    environment:
+      POSTGRES_USER: airi
+      POSTGRES_DB: airi
+    volumes: [db_data:/var/lib/postgresql/data]
+    mem_limit: 384m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U airi -d airi']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: ['valkey-server', '--maxmemory', '64mb', '--maxmemory-policy', 'allkeys-lru', '--appendonly', 'yes']
+    volumes: [redis_data:/data]
+    mem_limit: 96m
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *app
+    image: ${IMAGE_REGISTRY}/airi-web/api:${IMAGE_TAG}
+    environment:
+      API_SERVER_URL: ${PUBLIC_URL}
+      AUTH_SERVER_URL: ${PUBLIC_URL}
+      AUTH_SERVER_INTERNAL_URL: http://auth:3000
+      WEB_APP_URL: ${PUBLIC_URL}
+      REDIS_URL: redis://redis:6379
+    mem_limit: 512m
+
+  auth:
+    <<: *app
+    image: ${IMAGE_REGISTRY}/airi-web/auth:${IMAGE_TAG}
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL}
+      RESOURCE_SERVER_URL: http://api:3000
+      REDIS_URL: redis://redis:6379
+    mem_limit: 384m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_HOST: ${SITE_HOST}
+      ORIGIN_SECRET: ${ORIGIN_SECRET}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    mem_limit: 64m
+    depends_on:
+      api: { condition: service_healthy }
+      auth: { condition: service_healthy }
+
+volumes:
+  db_data:
+  redis_data:
+  caddy_data:

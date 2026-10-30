@@ -1,0 +1,66 @@
+# --- Sinh boi ws_kit v2.0.0 ---
+
+# Ho so ca nhan va bi mat — TUYET DOI khong commit
+.claude/local/
+.claude/settings.local.json
+account-info.md
+*.local.md
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Du an — moi du an co repo rieng, khong nam trong workstation
+/projects/*
+!/projects/.gitkeep
+
+# Tai lieu va asset cua du an dang lam (khong thuoc kit)
+/docs/hanoian-assets/
+/docs/*hanoian*
+/docs/reports/**/*hanoian*
+
+# MCP — anh export tu figma-developer-mcp
+.figma-images/
+.playwright-mcp/
+
+# Phu thuoc va ket qua build
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# He dieu hanh va editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Log
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# CDK
+cdk.out/
+.cdk.staging/
+
+# Cloudflare Worker
+edge/dist/
+edge/large/
+.wrangler/
+.dev.vars

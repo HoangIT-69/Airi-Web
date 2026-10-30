@@ -1,0 +1,19 @@
+# Origin for the Cloudflare Worker. Browsers never reach this host directly:
+# every request must carry the shared X-Origin-Auth secret the Worker adds.
+# Routes mirror airi/server/dev/caddy/Caddyfile.
+{$SITE_HOST} {
+	route {
+		@not_from_worker not header X-Origin-Auth {$ORIGIN_SECRET}
+		respond @not_from_worker 403
+
+		@internal path /internal /internal/*
+		respond @internal 404
+
+		request_header -X-Origin-Auth
+
+		@auth path /api/auth /api/auth/* /auth /auth/* /.well-known/oauth-authorization-server/api/auth
+		reverse_proxy @auth auth:3000
+
+		reverse_proxy api:3000
+	}
+}

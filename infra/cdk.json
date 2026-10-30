@@ -1,0 +1,17 @@
+{
+  "app": "npx tsx bin/app.ts",
+  "watch": {
+    "include": [
+      "bin/**",
+      "lib/**"
+    ]
+  },
+  "context": {
+    "region": "ap-southeast-2",
+    "imageTag": "bootstrap",
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:enablePartitionLiterals": true,
+    "instanceType": "t3.small",
+    "githubRepo": "HoangIT-69/Airi-Web"
+  }
+}

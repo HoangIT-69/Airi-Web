@@ -1,0 +1,27 @@
+{
+  "name": "@airi-web/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --all",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit && cdk synth --quiet -c publicUrl=https://airi-web.example.workers.dev"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.275.0",
+    "constructs": "10.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "aws-cdk": "2.1146.1",
+    "tsx": "4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
