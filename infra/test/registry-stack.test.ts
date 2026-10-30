@@ -6,8 +6,29 @@ import { RegistryStack } from '../lib/registry-stack.js'
 
 const ENV = { account: '111111111111', region: 'ap-southeast-1' }
 
-function synth(githubRepo?: string, githubOidcProviderArn?: string): Template {
-  return Template.fromStack(new RegistryStack(new App(), 'Registry', { env: ENV, githubRepo, githubOidcProviderArn }))
+function synth(githubRepo?: string, githubOidcProviderArn?: string, githubEnvironment?: string): Template {
+  return Template.fromStack(new RegistryStack(new App(), 'Registry', {
+    env: ENV,
+    githubRepo,
+    githubOidcProviderArn,
+    githubEnvironment,
+  }))
+}
+
+function trustCondition(subject: string): Record<string, unknown> {
+  return {
+    AssumeRolePolicyDocument: {
+      Statement: [Match.objectLike({
+        Action: 'sts:AssumeRoleWithWebIdentity',
+        Condition: {
+          StringEquals: {
+            'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+            'token.actions.githubusercontent.com:sub': subject,
+          },
+        },
+      })],
+    },
+  }
 }
 
 describe('RegistryStack', () => {
@@ -35,17 +56,12 @@ describe('RegistryStack', () => {
   })
 
   it('trusts GitHub OIDC only for the main branch of the given repo', () => {
-    synth('acme/airi-web').hasResourceProperties('AWS::IAM::Role', {
-      AssumeRolePolicyDocument: {
-        Statement: [Match.objectLike({
-          Action: 'sts:AssumeRoleWithWebIdentity',
-          Condition: {
-            StringEquals: { 'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com' },
-            StringLike: { 'token.actions.githubusercontent.com:sub': 'repo:acme/airi-web:ref:refs/heads/main' },
-          },
-        })],
-      },
-    })
+    synth('acme/airi-web').hasResourceProperties('AWS::IAM::Role', trustCondition('repo:acme/airi-web:ref:refs/heads/main'))
+  })
+
+  it('trusts only the named GitHub environment when one is configured', () => {
+    synth('acme/airi-web', undefined, 'Airi')
+      .hasResourceProperties('AWS::IAM::Role', trustCondition('repo:acme/airi-web:environment:Airi'))
   })
 
   it('reuses an existing OIDC provider instead of creating a second one', () => {

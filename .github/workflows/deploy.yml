@@ -5,8 +5,8 @@ name: deploy
 #   Cloudflare — stage-web → Worker static assets (+ R2 for files over 25 MiB)
 # AWS auth is GitHub OIDC (no long-lived keys). Setup: docs/infra/architecture.md.
 #
-# Repo variables: AWS_REGION, AWS_DEPLOY_ROLE_ARN, AIRI_REPOSITORY, AIRI_REF, PUBLIC_URL, CLOUDFLARE_ACCOUNT_ID
-# Repo secrets:   CLOUDFLARE_API_TOKEN
+# Environment `Airi` variables: AWS_REGION, AWS_DEPLOY_ROLE_ARN, AIRI_REPOSITORY, AIRI_REF, PUBLIC_URL, CLOUDFLARE_ACCOUNT_ID
+# Environment `Airi` secrets:   CLOUDFLARE_API_TOKEN
 
 on:
   workflow_dispatch:
@@ -28,10 +28,14 @@ env:
     -c region=${{ vars.AWS_REGION }}
     -c publicUrl=${{ vars.PUBLIC_URL }}
     -c githubRepo=${{ github.repository }}
+    -c githubEnvironment=Airi
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Variables and secrets live in this environment; it also sets the OIDC subject
+    # the AWS role trusts (repo:<repo>:environment:Airi, see infra/cdk.json).
+    environment: Airi
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4

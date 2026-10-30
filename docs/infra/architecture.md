@@ -101,7 +101,9 @@ Lặp lại cho `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET`, `AUTH_GITH
 Dashboard → Workers & Pages → `airi-web` → Settings → Domains & Routes → `workers.dev` → bật
 **Cloudflare Access**, policy *Allow* chỉ email của anh.
 
-**4. GitHub** — repo `airi-web` → Settings → Variables / Secrets:
+**4. GitHub** — repo `Airi-Web` → Settings → Environments → tạo environment **`Airi`**
+(nên giới hạn *Deployment branches* về `main`), rồi khai báo trong environment đó.
+Role AWS chỉ tin OIDC subject `repo:<repo>:environment:Airi` (context `githubEnvironment` trong `infra/cdk.json`).
 
 | Loại | Tên | Giá trị |
 |---|---|---|

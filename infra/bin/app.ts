@@ -11,6 +11,7 @@ const registry = new RegistryStack(app, `${APP_NAME}-registry`, {
   env,
   githubRepo: config.githubRepo,
   githubOidcProviderArn: config.githubOidcProviderArn,
+  githubEnvironment: config.githubEnvironment,
 })
 
 const appStack = new AppStack(app, `${APP_NAME}-app`, {

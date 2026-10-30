@@ -12,6 +12,7 @@
     "@aws-cdk/aws-iam:minimizePolicies": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
     "instanceType": "t3.small",
-    "githubRepo": "HoangIT-69/Airi-Web"
+    "githubRepo": "HoangIT-69/Airi-Web",
+    "githubEnvironment": "Airi"
   }
 }

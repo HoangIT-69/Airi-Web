@@ -39,6 +39,8 @@ export interface DeployConfig {
   /** `owner/repo` allowed to assume the CI deploy role via GitHub OIDC; omit to skip the role. */
   readonly githubRepo?: string
   readonly githubOidcProviderArn?: string
+  /** GitHub Actions environment the deploy job runs in; changes the OIDC `sub` claim. */
+  readonly githubEnvironment?: string
 }
 
 function readString(app: App, key: string): string | undefined {
@@ -70,5 +72,6 @@ export function readDeployConfig(app: App): DeployConfig {
     instanceType: readString(app, 'instanceType') ?? DEFAULT_INSTANCE_TYPE,
     githubRepo,
     githubOidcProviderArn: readString(app, 'githubOidcProviderArn'),
+    githubEnvironment: readString(app, 'githubEnvironment'),
   }
 }

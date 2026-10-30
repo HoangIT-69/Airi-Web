@@ -15,6 +15,11 @@ export interface RegistryStackProps extends StackProps {
   readonly githubRepo?: string
   /** Reuse an existing account-wide GitHub OIDC provider instead of creating one. */
   readonly githubOidcProviderArn?: string
+  /**
+   * When the job declares `environment:`, GitHub sets the OIDC subject to
+   * `repo:<repo>:environment:<name>` instead of the branch ref.
+   */
+  readonly githubEnvironment?: string
 }
 
 /** Tag every app resource carries (bin/app.ts); scopes the CI role's SSM access to our instance. */
@@ -37,20 +42,23 @@ export class RegistryStack extends Stack {
     }))
 
     if (props.githubRepo)
-      this.createCiRole(props.githubRepo, props.githubOidcProviderArn)
+      this.createCiRole(props.githubRepo, props.githubOidcProviderArn, props.githubEnvironment)
   }
 
-  private createCiRole(githubRepo: string, providerArn?: string): void {
+  private createCiRole(githubRepo: string, providerArn?: string, environment?: string): void {
     const provider = providerArn
       ? iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(this, 'GithubOidc', providerArn)
       : new iam.OpenIdConnectProvider(this, 'GithubOidc', { url: GITHUB_OIDC_URL, clientIds: [GITHUB_OIDC_AUDIENCE] })
 
+    const subjectScope = environment ? `environment:${environment}` : 'ref:refs/heads/main'
     const role = new iam.Role(this, 'CiRole', {
       roleName: CI_ROLE_NAME,
-      description: `GitHub Actions deploy role for ${githubRepo} (main branch only)`,
+      description: `GitHub Actions deploy role for ${githubRepo} (${subjectScope})`,
       assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
-        StringEquals: { 'token.actions.githubusercontent.com:aud': GITHUB_OIDC_AUDIENCE },
-        StringLike: { 'token.actions.githubusercontent.com:sub': `repo:${githubRepo}:ref:refs/heads/main` },
+        StringEquals: {
+          'token.actions.githubusercontent.com:aud': GITHUB_OIDC_AUDIENCE,
+          'token.actions.githubusercontent.com:sub': `repo:${githubRepo}:${subjectScope}`,
+        },
       }),
     })
 
