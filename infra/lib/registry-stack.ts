@@ -20,6 +20,8 @@ export interface RegistryStackProps extends StackProps {
    * `repo:<repo>:environment:<name>` instead of the branch ref.
    */
   readonly githubEnvironment?: string
+  /** `owner@<id>/repo@<id>` when GitHub puts immutable IDs in the OIDC subject. */
+  readonly githubOidcSubjectRepo?: string
 }
 
 /** Tag every app resource carries (bin/app.ts); scopes the CI role's SSM access to our instance. */
@@ -42,10 +44,10 @@ export class RegistryStack extends Stack {
     }))
 
     if (props.githubRepo)
-      this.createCiRole(props.githubRepo, props.githubOidcProviderArn, props.githubEnvironment)
+      this.createCiRole(props.githubRepo, props.githubOidcProviderArn, props.githubEnvironment, props.githubOidcSubjectRepo)
   }
 
-  private createCiRole(githubRepo: string, providerArn?: string, environment?: string): void {
+  private createCiRole(githubRepo: string, providerArn?: string, environment?: string, subjectRepo?: string): void {
     const provider = providerArn
       ? iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(this, 'GithubOidc', providerArn)
       : new iam.OpenIdConnectProvider(this, 'GithubOidc', { url: GITHUB_OIDC_URL, clientIds: [GITHUB_OIDC_AUDIENCE] })
@@ -57,7 +59,7 @@ export class RegistryStack extends Stack {
       assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': GITHUB_OIDC_AUDIENCE,
-          'token.actions.githubusercontent.com:sub': `repo:${githubRepo}:${subjectScope}`,
+          'token.actions.githubusercontent.com:sub': `repo:${subjectRepo ?? githubRepo}:${subjectScope}`,
         },
       }),
     })

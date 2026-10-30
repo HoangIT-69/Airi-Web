@@ -6,12 +6,18 @@ import { RegistryStack } from '../lib/registry-stack.js'
 
 const ENV = { account: '111111111111', region: 'ap-southeast-1' }
 
-function synth(githubRepo?: string, githubOidcProviderArn?: string, githubEnvironment?: string): Template {
+function synth(
+  githubRepo?: string,
+  githubOidcProviderArn?: string,
+  githubEnvironment?: string,
+  githubOidcSubjectRepo?: string,
+): Template {
   return Template.fromStack(new RegistryStack(new App(), 'Registry', {
     env: ENV,
     githubRepo,
     githubOidcProviderArn,
     githubEnvironment,
+    githubOidcSubjectRepo,
   }))
 }
 
@@ -62,6 +68,11 @@ describe('RegistryStack', () => {
   it('trusts only the named GitHub environment when one is configured', () => {
     synth('acme/airi-web', undefined, 'Airi')
       .hasResourceProperties('AWS::IAM::Role', trustCondition('repo:acme/airi-web:environment:Airi'))
+  })
+
+  it('matches the immutable-ID subject exactly when configured', () => {
+    synth('acme/airi-web', undefined, 'Airi', 'acme@1/airi-web@2')
+      .hasResourceProperties('AWS::IAM::Role', trustCondition('repo:acme@1/airi-web@2:environment:Airi'))
   })
 
   it('reuses an existing OIDC provider instead of creating a second one', () => {

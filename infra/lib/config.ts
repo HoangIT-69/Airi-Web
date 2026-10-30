@@ -41,6 +41,11 @@ export interface DeployConfig {
   readonly githubOidcProviderArn?: string
   /** GitHub Actions environment the deploy job runs in; changes the OIDC `sub` claim. */
   readonly githubEnvironment?: string
+  /**
+   * Repo part of the OIDC `sub` when GitHub sends immutable IDs, e.g. `owner@123/repo@456`.
+   * Defaults to githubRepo (legacy `owner/repo` subjects).
+   */
+  readonly githubOidcSubjectRepo?: string
 }
 
 function readString(app: App, key: string): string | undefined {
@@ -73,5 +78,6 @@ export function readDeployConfig(app: App): DeployConfig {
     githubRepo,
     githubOidcProviderArn: readString(app, 'githubOidcProviderArn'),
     githubEnvironment: readString(app, 'githubEnvironment'),
+    githubOidcSubjectRepo: readString(app, 'githubOidcSubjectRepo'),
   }
 }
