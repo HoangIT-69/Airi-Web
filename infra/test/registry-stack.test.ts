@@ -50,6 +50,11 @@ describe('RegistryStack', () => {
     synth().resourceCountIs('AWS::IAM::Role', 0)
   })
 
+  it('lets CI check for existing image tags before pushing to immutable repos', () => {
+    const policies = synth('acme/airi-web').findResources('AWS::IAM::Policy')
+    expect(JSON.stringify(policies)).toContain('ecr:DescribeImages')
+  })
+
   it('lets CI run commands only on instances tagged for this project', () => {
     synth('acme/airi-web').hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {

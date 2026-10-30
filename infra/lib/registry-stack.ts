@@ -64,8 +64,11 @@ export class RegistryStack extends Stack {
       }),
     })
 
-    for (const repository of this.repositories)
+    for (const repository of this.repositories) {
       repository.grantPullPush(role)
+      // CI skips images already built for an AIRI commit (tags are immutable).
+      repository.grant(role, 'ecr:DescribeImages')
+    }
     role.addToPolicy(new iam.PolicyStatement({
       actions: ['sts:AssumeRole'],
       resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-${CDK_BOOTSTRAP_QUALIFIER}-*`],
