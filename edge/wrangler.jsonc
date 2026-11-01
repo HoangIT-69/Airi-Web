@@ -11,8 +11,9 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // Backend paths proxy to EC2; /assets/* falls back to R2 for oversized files.
-    "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/ws/*", "/.well-known/*", "/assets/*"]
+    // Backend paths proxy to EC2; /assets/* falls back to R2 for oversized files;
+    // /remote-assets/* is served only from R2 (never the SPA index.html).
+    "run_worker_first": ["/api/*", "/api", "/auth/*", "/auth", "/ws/*", "/.well-known/*", "/assets/*", "/remote-assets/*"]
   },
   "r2_buckets": [
     { "binding": "LARGE_ASSETS", "bucket_name": "airi-web-large-assets" }
