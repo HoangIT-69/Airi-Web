@@ -66,8 +66,8 @@ infra/
 ├── assets/server/         # compose.yml · Caddyfile · deploy.sh — chạy trên EC2
 └── test/
 edge/
-├── src/index.ts           # Worker: proxy backend, phục vụ asset, R2 cho file lớn
-├── scripts/               # split-large-assets.ts (chạy trong CI)
+├── src/index.ts           # Worker: proxy backend, phục vụ asset, R2 cho file lớn và /remote-assets/*
+├── scripts/               # split-large-assets.ts (CI) · upload-remote-assets.ts, shrink-vrm.ts (chạy tay)
 ├── wrangler.jsonc
 └── test/
 .github/workflows/deploy.yml
