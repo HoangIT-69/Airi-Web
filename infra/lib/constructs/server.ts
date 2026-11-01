@@ -34,6 +34,8 @@ const SNAPSHOT_INTERVAL_HOURS = 24
 export interface ServerProps {
   readonly vpc: ec2.IVpc
   readonly instanceType: string
+  /** Pinned so a new Amazon Linux release never replaces the instance (see DeployConfig.amiId). */
+  readonly amiId: string
   readonly imageTag: string
   readonly publicUrl: string
 }
@@ -78,7 +80,7 @@ export class Server extends Construct {
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: new ec2.InstanceType(props.instanceType),
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({ cpuType: ec2.AmazonLinuxCpuType.X86_64 }),
+      machineImage: ec2.MachineImage.genericLinux({ [stack.region]: props.amiId }),
       securityGroup,
       role,
       requireImdsv2: true,

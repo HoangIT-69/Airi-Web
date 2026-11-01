@@ -8,11 +8,13 @@ import { SECURE_PARAM_NAMES, SSM_PARAM_IMAGE_TAG, SSM_PARAM_PUBLIC_URL } from '.
 
 const ENV = { account: '111111111111', region: 'ap-southeast-1' }
 const PUBLIC_URL = 'https://airi-web.example.workers.dev'
+const AMI_ID = 'ami-0123456789abcdef0'
 
 function synth(): Template {
   const stack = new AppStack(new App(), 'Test', {
     env: ENV,
     instanceType: 't3.small',
+    amiId: AMI_ID,
     imageTag: 'abc123',
     publicUrl: PUBLIC_URL,
   })
@@ -67,6 +69,12 @@ describe('AppStack', () => {
     template.hasResourceProperties('AWS::EC2::LaunchTemplate', {
       LaunchTemplateData: { MetadataOptions: { HttpTokens: 'required' } },
     })
+  })
+
+  // A "latest AMI" SSM lookup replaced the instance (and orphaned its data) on 2026-11-01.
+  it('uses the pinned AMI instead of a latest-AMI parameter lookup', () => {
+    template.hasResourceProperties('AWS::EC2::Instance', { ImageId: AMI_ID })
+    expect(Object.keys(template.toJSON().Parameters ?? {}).some(name => name.includes('amiamazonlinuxlatest'))).toBe(false)
   })
 
   it('keeps the root volume encrypted, within 30 GiB and after termination', () => {

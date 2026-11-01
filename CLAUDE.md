@@ -118,7 +118,7 @@ edge/
 > Giá trị thật → `.env.local` (không commit). Danh mục → `.env.example` (commit).
 
 Dự án không đọc `.env`. Cấu hình deploy qua CDK context (`cdk.json` hoặc `-c key=value`):
-`region`, `publicUrl` (bắt buộc), `imageTag`, `instanceType`, `githubRepo`, `githubOidcProviderArn`.
+`region`, `publicUrl` (bắt buộc), `amiId` (bắt buộc, ghim AMI), `imageTag`, `instanceType`, `githubRepo`, `githubOidcProviderArn`.
 Worker: var `ORIGIN_URL`, secret `ORIGIN_SECRET`. Bí mật runtime — xem `docs/infra/architecture.md`.
 
 ## 8. Nên / Không nên

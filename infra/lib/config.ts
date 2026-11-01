@@ -36,6 +36,11 @@ export interface DeployConfig {
   /** ECR image tag for api/auth (CI passes the AIRI commit SHA). */
   readonly imageTag: string
   readonly instanceType: string
+  /**
+   * Pinned AMI for the instance (Amazon Linux 2023, x86_64, in `region`). A "latest" lookup would
+   * replace the instance - and orphan its data volume - whenever AWS publishes a new AMI.
+   */
+  readonly amiId: string
   /** `owner/repo` allowed to assume the CI deploy role via GitHub OIDC; omit to skip the role. */
   readonly githubRepo?: string
   readonly githubOidcProviderArn?: string
@@ -65,6 +70,10 @@ export function readDeployConfig(app: App): DeployConfig {
   if (!/^https:\/\/[^/\s]+$/.test(publicUrl))
     throw new Error(`CDK context "publicUrl" must be an https origin without path, got ${publicUrl}`)
 
+  const amiId = requireString(app, 'amiId')
+  if (!/^ami-[0-9a-f]{8,17}$/.test(amiId))
+    throw new Error(`CDK context "amiId" must be an AMI id, got ${amiId}`)
+
   const githubRepo = readString(app, 'githubRepo')
   if (githubRepo && !/^[\w.-]+\/[\w.-]+$/.test(githubRepo))
     throw new Error(`CDK context "githubRepo" must look like owner/repo, got ${githubRepo}`)
@@ -75,6 +84,7 @@ export function readDeployConfig(app: App): DeployConfig {
     publicUrl,
     imageTag: readString(app, 'imageTag') ?? BOOTSTRAP_IMAGE_TAG,
     instanceType: readString(app, 'instanceType') ?? DEFAULT_INSTANCE_TYPE,
+    amiId,
     githubRepo,
     githubOidcProviderArn: readString(app, 'githubOidcProviderArn'),
     githubEnvironment: readString(app, 'githubEnvironment'),
