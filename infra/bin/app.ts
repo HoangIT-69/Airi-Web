@@ -18,6 +18,7 @@ const registry = new RegistryStack(app, `${APP_NAME}-registry`, {
 const appStack = new AppStack(app, `${APP_NAME}-app`, {
   env,
   instanceType: config.instanceType,
+  amiId: config.amiId,
   imageTag: config.imageTag,
   publicUrl: config.publicUrl,
 })

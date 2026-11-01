@@ -127,6 +127,7 @@ Role AWS chỉ tin OIDC subject `repo:<repo>:environment:Airi` (context `githubE
 | Deploy lại không đổi image | `sudo bash /opt/airi/deploy.sh` trong session SSM |
 | Đổi secret OAuth | `aws ssm put-parameter --overwrite ...` rồi chạy lại `deploy.sh` |
 | Khôi phục | Tạo volume từ snapshot gần nhất, gắn vào instance thay root volume |
+| Nâng AMI | Đổi `amiId` trong `infra/cdk.json` (ID AL2023 x86_64 mới ở `ap-southeast-2`). **Thay instance** → root volume mới, Postgres trống: sao lưu dữ liệu trước, đọc `cdk diff` |
 
 ## Remote assets (preset riêng của chủ)
 
@@ -181,6 +182,14 @@ node scripts/shrink-vrm.ts <vrm-gốc> <vrm-mobile> [1024]
 Kết quả với Arcana (2026-11-01): 30 312 612 B → 20 726 068 B (texture 15,3 MB → 5,8 MB; phần còn lại
 là mesh/blend shape). VRAM texture giảm 4 lần (224 MB → 56 MB). gltf-validator: 0 lỗi;
 `@pixiv/three-vrm` 3.5.5 đọc đủ 51 bone, 17 expression, 22 MToon material.
+
+### AMI được ghim
+
+`amiId` (context trong `infra/cdk.json`) ghim AMI của instance. Trước 2026-11-01 stack tra
+"AL2023 mới nhất" qua SSM: khi AWS ra AMI mới, lần deploy kế tiếp **thay instance**, root volume cũ
+(`deleteOnTermination: false`) bị bỏ lại cùng Postgres và `secrets.env`, máy mới khởi động với DB trống.
+Bước *Restart services on EC2* trong workflow cũng chờ SSM agent online và `cloud-init status --wait`,
+rồi tự tải bundle về `/opt/airi` trước khi chạy `deploy.sh` — không phụ thuộc user data đã chạy xong.
 
 ## Đánh đổi đã biết
 

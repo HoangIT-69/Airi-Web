@@ -110,9 +110,25 @@ jobs:
           INSTANCE_ID: ${{ steps.outputs.outputs.instance }}
         run: |
           set -euo pipefail
+          # A replaced instance needs a minute before its SSM agent registers.
+          for _ in $(seq 1 30); do
+            PING=$(aws ssm describe-instance-information --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query 'InstanceInformationList[0].PingStatus' --output text)
+            [[ "$PING" == "Online" ]] && break
+            sleep 10
+          done
+          # Wait for first-boot user data (docker, compose, bundle), then fetch the bundle ourselves
+          # so deploy.sh exists even if user data has not got that far.
+          SCRIPT='set -euo pipefail
+          cloud-init status --wait > /dev/null || echo "cloud-init reported an error; continuing" >&2
+          export AWS_DEFAULT_REGION="$(cloud-init query region)"
+          mkdir -p /opt/airi
+          aws s3 cp "$(aws ssm get-parameter --name /airi-web/deploy/bundle-url --query Parameter.Value --output text)" /tmp/airi-bundle.zip --only-show-errors
+          unzip -oq /tmp/airi-bundle.zip -d /opt/airi && rm -f /tmp/airi-bundle.zip
+          bash /opt/airi/deploy.sh'
           COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript --comment "airi-web deploy ${{ steps.images.outputs.tag }}" \
-            --parameters 'commands=["bash /opt/airi/deploy.sh"]' \
+            --parameters "$(jq -cn --arg script "$SCRIPT" '{commands: ($script | split("\n") | map(sub("^ +"; "")))}')" \
             --query Command.CommandId --output text)
           # `aws ssm wait` gives up after ~100 s; the first pull + migrations + ACME takes longer.
           for _ in $(seq 1 90); do

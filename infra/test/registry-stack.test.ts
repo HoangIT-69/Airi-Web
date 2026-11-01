@@ -89,7 +89,7 @@ describe('RegistryStack', () => {
 })
 
 describe('readDeployConfig', () => {
-  const BASE = { region: 'ap-southeast-1', publicUrl: 'https://airi-web.example.workers.dev' }
+  const BASE = { region: 'ap-southeast-1', publicUrl: 'https://airi-web.example.workers.dev', amiId: 'ami-0123456789abcdef0' }
   const read = (context: Record<string, unknown>) => readDeployConfig(new App({ context }))
 
   it('applies defaults for optional values', () => {
@@ -108,6 +108,10 @@ describe('readDeployConfig', () => {
       expect(() => read({ ...BASE, publicUrl })).toThrow(/publicUrl/)
     },
   )
+
+  it.each([undefined, '', 'al2023-latest', 'ami-XYZ'])('rejects a missing or malformed amiId (%j)', (amiId) => {
+    expect(() => read({ ...BASE, amiId })).toThrow(/amiId/)
+  })
 
   it.each(['acme', 'acme/airi web', 'https://github.com/acme/airi'])('rejects a malformed githubRepo (%j)', (githubRepo) => {
     expect(() => read({ ...BASE, githubRepo })).toThrow(/githubRepo/)

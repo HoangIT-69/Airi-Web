@@ -7,6 +7,7 @@ const AZ_SUFFIXES = ['a'] as const
 
 export interface AppStackProps extends StackProps {
   readonly instanceType: string
+  readonly amiId: string
   readonly imageTag: string
   readonly publicUrl: string
 }
@@ -25,6 +26,7 @@ export class AppStack extends Stack {
     const server = new Server(this, 'Server', {
       vpc,
       instanceType: props.instanceType,
+      amiId: props.amiId,
       imageTag: props.imageTag,
       publicUrl: props.publicUrl,
     })
