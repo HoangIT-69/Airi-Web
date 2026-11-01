@@ -12,6 +12,7 @@ Trình duyệt ──HTTPS──▶ Cloudflare Access (chỉ email của chủ) 
                                                                    │
                      ┌─────────────────────────────────────────────┼─────────────────────────────┐
                      │ /api* /auth* /ws* /.well-known*             │ /assets/<file > 25 MiB>     │ còn lại
+                     │                                             │ /remote-assets/*            │
                      ▼                                             ▼                             ▼
      HTTPS + header X-Origin-Auth                            R2 airi-web-large-assets     Workers Assets (stage-web)
                      │
@@ -126,6 +127,60 @@ Role AWS chỉ tin OIDC subject `repo:<repo>:environment:Airi` (context `githubE
 | Deploy lại không đổi image | `sudo bash /opt/airi/deploy.sh` trong session SSM |
 | Đổi secret OAuth | `aws ssm put-parameter --overwrite ...` rồi chạy lại `deploy.sh` |
 | Khôi phục | Tạo volume từ snapshot gần nhất, gắn vào instance thay root volume |
+
+## Remote assets (preset riêng của chủ)
+
+Model, motion và character card của chủ được dùng làm **preset dựng sẵn** của AIRI: điện thoại
+tải thẳng qua URL, không cần import. File có bản quyền → **chỉ nằm trong R2, không bao giờ vào git**.
+
+| URL | Nguồn mặc định |
+|---|---|
+| `/remote-assets/models/arcana/Arcana.vrm` | `D:\model\6901777523023878226.vrm` |
+| `/remote-assets/models/arcana/Arcana.mobile.vrm` | Sinh từ bản trên bằng `shrink-vrm.ts` (texture ≤ 1024 px) |
+| `/remote-assets/models/c583/c583.zip` | `projects/_nikke-models/c583.zip` |
+| `/remote-assets/motions/<tên>.vrma` | `projects/_mai-motions/rexclaw/*.vrma` |
+| `/remote-assets/motions/dances/<tên>.vrma` | `projects/_mai-motions/rexclaw/dances/*.vrma` |
+| `/remote-assets/cards/thu-ky/card.json` | `projects/airi/custom/cards/thu-ky/card.json` |
+
+**Route Worker** (`edge/src/index.ts`): `/remote-assets/*` nằm trong `run_worker_first`, đọc R2
+binding `LARGE_ASSETS` với key = path bỏ `/` đầu.
+
+- Thiếu object → **404** (không rơi về `index.html` của SPA). Chỉ nhận `GET`/`HEAD`, method khác → 405.
+- `Content-Type` lấy từ metadata của object, không có thì theo đuôi file
+  (`.vrm`/`.vrma` → `model/gltf-binary`, `.zip` → `application/zip`, `.json` → `application/json`).
+- `ETag`, `Content-Length`, `Accept-Ranges: bytes`, `Cache-Control: public, max-age=86400`
+  — **không** `immutable` vì upload lại giữ nguyên URL; trình duyệt nhận bản mới sau tối đa 1 ngày.
+- Hỗ trợ **một** `Range` (`bytes=a-b`, `a-`, `-n`) → 206 + `Content-Range`; vượt kích thước → 416.
+  Nhiều range trong một header → trả cả file (200). iOS Safari hay dùng Range với file lớn.
+
+**Upload** (chạy tay trên máy chủ sở hữu file, wrangler đã login):
+
+```bash
+cd projects/airi-web/edge
+node scripts/upload-remote-assets.ts --dry-run   # in danh sách key + kích thước, không upload
+node scripts/upload-remote-assets.ts             # upload toàn bộ (ghi đè key cũ)
+node scripts/upload-remote-assets.ts --verify    # tải lại từng key từ R2, so kích thước
+```
+
+Đường dẫn nguồn đổi bằng `--arcana`, `--arcana-mobile`, `--c583`, `--motions`, `--card`, `--bucket`
+hoặc biến môi trường `REMOTE_ASSETS_ARCANA`, `..._ARCANA_MOBILE`, `..._C583`, `..._MOTIONS`, `..._CARD`,
+`..._BUCKET`. Thêm motion: thả file `.vrma` vào thư mục motions rồi chạy lại — tên file giữ nguyên hoa/thường.
+
+**Bản mobile của Arcana**: VRM gốc ~29 MB với 14 texture PNG 2048² (~224 MB VRAM sau giải nén)
+làm iPhone tải chập chờn. `edge/scripts/shrink-vrm.ts` đọc GLB, giảm mỗi texture PNG/JPEG về cạnh dài
+≤ 1024 px (đổi được bằng tham số thứ 3), mã hóa lại cùng định dạng, rồi đóng gói lại BIN chunk
+(căn 4 byte). JSON chunk giữ nguyên — kể cả extension `VRM`, `VRMC_*`, MToon — chỉ đổi
+`byteOffset`/`byteLength` của bufferView và `byteLength` của buffer. Không dùng gltf-transform vì
+công cụ đó có thể bỏ extension lạ. Upload script tự sinh bản này vào thư mục temp
+(`%TEMP%\airi-remote-assets\`) nếu chưa có; muốn sinh tay:
+
+```bash
+node scripts/shrink-vrm.ts <vrm-gốc> <vrm-mobile> [1024]
+```
+
+Kết quả với Arcana (2026-11-01): 30 312 612 B → 20 726 068 B (texture 15,3 MB → 5,8 MB; phần còn lại
+là mesh/blend shape). VRAM texture giảm 4 lần (224 MB → 56 MB). gltf-validator: 0 lỗi;
+`@pixiv/three-vrm` 3.5.5 đọc đủ 51 bone, 17 expression, 22 MToon material.
 
 ## Đánh đổi đã biết
 
